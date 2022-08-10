@@ -3,21 +3,40 @@ import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
 var dict = require('../asset/dict.json')
-import { GetStaticProps, GetStaticPaths, GetServerSideProps } from 'next'
+import { GetServerSideProps } from 'next'
+import React, { useState } from 'react';
+
 
 function randomPick<Type>(items: Array<Type>): Type {
     return items[Math.floor(Math.random() * items.length)]
 };
 
+
+function shuffle<Type>(array: Array<Type>): Array<Type>{
+  return array.sort(() =>0.5 - Math.random());
+}
+
 // This gets called on every request
 export const getServerSideProps: GetServerSideProps = async () => {
-    const word = randomPick<Any>(dict.words)
+    type DictionaryEntry = {entry: {form: string }}
+
+    const word = randomPick<DictionaryEntry>(dict.words)
     const otherWords = dict.words.filter((w: { entry: { form: string } }) => w.entry.form !== word.entry.form)
     return { props: { word, otherWords } }
 }
 
+const setNewQuestion = (setQuestionCallback: Function) => {
+    type DictionaryEntry = {entry: {form: string }}
+    const word = randomPick<DictionaryEntry>(dict.words).entry.form
+
+    const otherWords = dict.words.filter((w: { entry: { form: string } }) => w.entry.form !== word)
+    const shuffledOtherWords = shuffle(otherWords)
+    const answerAlternatives = shuffledOtherWords.slice(0, 5).map((e: DictionaryEntry) => e.entry.form)
+    setQuestionCallback({word: word, answerAlternatives})
+}
 
 const Home: NextPage = ({word, otherWords} : InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  const [question, setQuestion] = useState({word: 'a', answerAlternatives: ['o']});
   return (
     <div className={styles.container}>
       <Head>
@@ -28,13 +47,20 @@ const Home: NextPage = ({word, otherWords} : InferGetServerSidePropsType<typeof 
 
       <main className={styles.main}>
         <div className={styles.big_glyph}>
-          {word.entry.form}
+          {question.word}
         </div>
         <div>
-          {console.log(word.translations[0].forms)}
-          {word.translations[0].forms}
+          {shuffle([question.word, ...question.answerAlternatives]).map((a, i) => {
+            return (
+              <div>
+                <button onClick={() => setNewQuestion(setQuestion)}>{a}</button><br/>
+              </div>
+            )
+          })}
         </div>
+
       </main>
+
 
       <footer className={styles.footer}>
         <a
